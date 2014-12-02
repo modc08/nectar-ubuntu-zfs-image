@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e -x
+
+test -f /etc/ssh/ssh_host_dsa_key || dpkg-reconfigure openssh-server
+
+if [ `parted --list | grep --count zfs` -eq 0 ] ; then
+  umount /mnt
+  grep -v vdb /etc/fstab > /etc/fstab.$$
+  mv /etc/fstab.$$ /etc/fstab
+  zpool create -f -O atime=off -O compression=lz4 data vdb
+  rmdir /mnt
+  ln -s /data /mnt
+  chmod a+rwx /data
+fi
