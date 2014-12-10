@@ -13,3 +13,5 @@ if [ `parted --list | grep --count zfs` -eq 0 ] ; then
   ln -s /data /mnt
   chmod a+rwx /data
 fi
+
+mount | grep -q /data || zpool import -f data
