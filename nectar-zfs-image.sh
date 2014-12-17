@@ -22,6 +22,7 @@ apt-add-repository --yes ppa:zfs-native/stable
 apt-get update
 apt-get -y dist-upgrade
 apt-get -y install dkms build-essential ubuntu-zfs
+apt-get clean
 
 # zfs: boot-time initialisation
 
@@ -29,7 +30,7 @@ install -o 0 -g 0 rc.local /etc
 
 # clear out keys and other things, ready for a snapshot
 
-rm -vf rc.local /etc/ssh/ssh*key* /{root,home/ubuntu}/.ssh/authorized_keys /home/ubuntu/.cache/motd.legal-displayed
+rm -vf /etc/ssh/ssh*key* /{root,home/ubuntu}/.ssh/authorized_keys /home/ubuntu/.cache/motd.legal-displayed
 
 truncate -s 0 /var/log/wtmp /var/log/lastlog
 
