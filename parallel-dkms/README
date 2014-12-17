@@ -1,0 +1,4 @@
+Support for parallel builds in DKMS by Andras Korn / CAE Engineering Kft.
+
+Debian Bug #663114
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=663114

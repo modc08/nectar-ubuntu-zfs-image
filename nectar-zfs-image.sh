@@ -17,11 +17,24 @@ deb http://mirror.aarnet.edu.au/ubuntu/ $ubuntu-updates main universe
 deb http://security.ubuntu.com/ubuntu $ubuntu-security main universe
 EOF
 
+apt-get update
+apt-get -y dist-upgrade
+apt-get -y install dkms build-essential
+
+# parallel dkms builds
+
+patch /usr/sbin/dkms parallel-dkms/dkms.patch
+
+# zfs
+
 apt-add-repository --yes ppa:zfs-native/stable
 
 apt-get update
+apt-get -y install ubuntu-zfs
 apt-get -y dist-upgrade
-apt-get -y install dkms build-essential ubuntu-zfs
+
+# cleanup
+
 apt-get clean
 
 # zfs: boot-time initialisation
@@ -33,7 +46,3 @@ install -o 0 -g 0 rc.local /etc
 rm -vf /etc/ssh/ssh*key* /{root,home/ubuntu}/.ssh/authorized_keys /home/ubuntu/.cache/motd.legal-displayed
 
 truncate -s 0 /var/log/wtmp /var/log/lastlog
-
-# bye
-
-poweroff
