@@ -10,7 +10,7 @@ import glanceclient, swiftclient
 import keystoneclient.v2_0.client as keystone
 import novaclient.v1_1.client as nova
 
-import requests
+import requests, yaml
 
 # Config
 
@@ -20,19 +20,24 @@ config = yaml.load(open("config.yaml", "r"))
 
 def slack(s):
     payload = { "text" : "image-builder: " + s }
-    requests.post("", data=json.dumps(payload))
+    requests.post(config["slack"]["webhook"], data=json.dumps(payload))
 
 # OpenStack
 
 openstack = config["openstack"]
 
+nova_client = nova.Client(username=openstack["username"], api_key=openstack["password"], project_id=openstack["tenant"], auth_url=openstack["auth_url"])
+keystone_client = keystone.Client(username=openstack["username"], password=openstack["password"], tenant_name=openstack["tenant"], auth_url=openstack["auth_url"])
+glance_url = keystone_client.service_catalog.url_for(service_type="image", endpoint_type="publicURL")
+swift_url = keystone_client.service_catalog.url_for(service_type="object-store", endpoint_type="publicURL")
+glance_client = glanceclient.Client(endpoint=glance_url, token=keystone_client.auth_token)
+
 def initiate():
     """Boot the builder."""
 
-    nova = nova.Client(username=openstack["username"], api_key=openstack["password"], project_id=openstack["tenant"], auth_url=openstack["auth_url"])
     user_data = open("user-data.sh").read()
-    flavor = nova.flavors.find(name=openstack["flavor"])
-    builder = nova.servers.create(availability_zone=openstack["region"], name="image-builder", image=openstack["image"]["base"], flavor=flavor, userdata=user_data, security_groups=[openstack["security_group"]])
+    flavor = nova_client.flavors.find(name=openstack["flavor"])
+    builder = nova_client.servers.create(availability_zone=openstack["region"], name="image-builder", image=openstack["image"]["base"], flavor=flavor, userdata=user_data, security_groups=[openstack["security_group"]])
 
     slack("instantiated: " + builder.id)
 
@@ -49,7 +54,9 @@ def initiate():
 
     slack("vm is %s at %s" % (builder.status, rip))
 
-def wait_for_completion():
+    return builder
+
+def wait_for_completion(builder):
     """Wait around until the builder has powered down."""
     previous_status = builder.status
 
@@ -62,7 +69,7 @@ def wait_for_completion():
 
     slack("vm is %s" % builder.status)
 
-def snapshot():
+def snapshot(builder):
     """Snapshot the now-powered-down builder."""
 
     image_name = openstack["image"]["prefix"] + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -70,12 +77,7 @@ def snapshot():
 
     slack("creating image: %s" % image_name)
 
-    keystone_client = keystone.Client(username=openstack["username"], password=openstack["password"], tenant_name=openstack["tenant"], auth_url=openstack["auth_url"])
-    glance_url = keystone_client.service_catalog.url_for(service_type="image", endpoint_type="publicURL")
-    swift_url = keystone_client.service_catalog.url_for(service_type="object-store", endpoint_type="publicURL")
-
-    glance = glanceclient.Client(endpoint=glance_url, token=keystone_client.auth_token)
-    image = glance.images.get(image_id)
+    image = glance_client.images.get(image_id)
 
     previous_status = ""
     while not image.status == "active":
@@ -87,7 +89,7 @@ def snapshot():
 
     slack("image %s is %s" % (image_name, image.status))
 
-def finish():
+def finish(builder):
     """Tidy up and record the image ID."""
 
     builder.delete()
@@ -97,7 +99,7 @@ def finish():
     slack("swift: %s/%s = %s" % (openstack["swift"]["container"], openstack["swift"]["object"], image_id))
 
 if __name__ == "__main__":
-    initiate()
-    wait_for_completion()
-    snapshot()
-    finish()
+    builder = initiate()
+    wait_for_completion(builder)
+    snapshot(builder)
+    finish(builder)

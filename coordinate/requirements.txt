@@ -1,0 +1,10 @@
+# pip install -r requirements.txt -t lib
+# or
+# virtualenv ve; ve/bin/pip install -r requirements.txt
+
+requests
+pyyaml
+python-keystoneclient
+python-glanceclient
+python-novaclient
+python-swiftclient
