@@ -41,6 +41,12 @@ echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selec
 apt-get update
 apt-get -y install oracle-java8-installer
 
+# other requirements
+
+apt-get -y install `cat packages.txt`
+
+pip install --upgrade python-novaclient python-keystoneclient python-glanceclient python-swiftclient
+
 # cleanup
 
 apt-get clean
