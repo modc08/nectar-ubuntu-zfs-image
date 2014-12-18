@@ -89,7 +89,9 @@ def snapshot(builder):
 
     slack("image %s is %s" % (image_name, image.status))
 
-def finish(builder):
+    return image_id
+
+def finish(builder, image_id):
     """Tidy up and record the image ID."""
 
     builder.delete()
@@ -101,5 +103,5 @@ def finish(builder):
 if __name__ == "__main__":
     builder = initiate()
     wait_for_completion(builder)
-    snapshot(builder)
-    finish(builder)
+    image_id = snapshot(builder)
+    finish(builder, image_id)
