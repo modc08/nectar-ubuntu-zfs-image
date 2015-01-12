@@ -1,3 +1,4 @@
+apache2-utils
 aria2
 build-essential
 clang
