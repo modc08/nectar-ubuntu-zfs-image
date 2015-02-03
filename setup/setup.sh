@@ -45,7 +45,11 @@ apt-get -y install oracle-java8-installer
 
 apt-get -y install `cat packages.txt`
 
-pip install --upgrade python-novaclient python-keystoneclient python-glanceclient python-swiftclient
+pip install --upgrade python-novaclient python-keystoneclient python-glanceclient python-swiftclient django-storages
+
+# patch django-storages
+
+patch /usr/local/lib/python2.7/dist-packages/storages/backends/s3boto.py < s3boto.patch
 
 # cleanup
 

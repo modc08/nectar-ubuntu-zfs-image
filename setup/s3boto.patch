@@ -1,0 +1,28 @@
+--- s3boto.py.orig	2015-02-03 01:13:27.786762287 +1030
++++ s3boto.py	2015-02-03 01:20:21.618358772 +1030
+@@ -15,7 +15,7 @@
+ 
+ try:
+     from boto import __version__ as boto_version
+-    from boto.s3.connection import S3Connection, SubdomainCallingFormat
++    from boto.s3.connection import S3Connection, SubdomainCallingFormat, NoHostProvided
+     from boto.exception import S3ResponseError
+     from boto.s3.key import Key as S3Key
+     from boto.utils import parse_ts
+@@ -233,6 +233,7 @@
+         'application/x-javascript',
+     ))
+     url_protocol = setting('AWS_S3_URL_PROTOCOL', 'http:')
++    host = setting('AWS_S3_HOST', NoHostProvided)
+ 
+     def __init__(self, acl=None, bucket=None, **settings):
+         # check if some of the settings we've provided as class attributes
+@@ -265,7 +266,7 @@
+     def connection(self):
+         if self._connection is None:
+             self._connection = self.connection_class(
+-                self.access_key, self.secret_key,
++                self.access_key, self.secret_key, host=self.host,
+                 calling_format=self.calling_format)
+         return self._connection
+
