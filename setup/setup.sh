@@ -45,7 +45,7 @@ apt-get -y install oracle-java8-installer
 
 apt-get -y install `cat packages.txt`
 
-pip install --upgrade python-novaclient python-keystoneclient python-glanceclient python-swiftclient django-storages
+pip install --upgrade python-novaclient python-keystoneclient python-glanceclient python-swiftclient django-storages boto
 
 # patch django-storages
 
