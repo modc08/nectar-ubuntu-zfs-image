@@ -32,6 +32,11 @@ glance_url = keystone_client.service_catalog.url_for(service_type="image", endpo
 swift_url = keystone_client.service_catalog.url_for(service_type="object-store", endpoint_type="publicURL")
 glance_client = glanceclient.Client(endpoint=glance_url, token=keystone_client.auth_token)
 
+def horizon(type, id, name = None):
+    if name is None:
+        name = id
+    return "<%s|%s>" % (config["openstack"]["horizon"][type] % id, name)
+
 def initiate():
     """Boot the builder."""
 
@@ -39,20 +44,24 @@ def initiate():
     flavor = nova_client.flavors.find(name=openstack["flavor"])
     builder = nova_client.servers.create(availability_zone=openstack["region"], name="image-builder", image=openstack["image"]["base"], flavor=flavor, userdata=user_data, security_groups=[openstack["security_group"]])
 
-    slack("instantiated: " + builder.id)
+    slack("instantiated: " + horizon("instance", builder.id))
 
     previous_status = ""
     while not builder.status == "ACTIVE":
         if builder.status != previous_status:
-            slack("vm is %s" % builder.status)
+            slack("instance %s is %s" % (horizon("instance", builder.id), builder.status))
             previous_status = builder.status
         time.sleep(2)
         builder.get()
 
     ip = builder.networks.values()[0][0]
-    rip = socket.gethostbyaddr(ip)[0]
 
-    slack("vm is %s at %s" % (builder.status, rip))
+    try:
+        ip = socket.gethostbyaddr(ip)[0]
+    except:
+        None
+
+    slack("instance %s is %s at %s" % (horizon("instance", builder.id), builder.status, ip))
 
     return builder
 
@@ -62,46 +71,45 @@ def wait_for_completion(builder):
 
     while not builder.status == "SHUTOFF":
         if builder.status != previous_status:
-            slack("vm is %s" % builder.status)
+            slack("instance %s is %s" % (horizon("instance", builder.id), builder.status))
             previous_status = builder.status
         time.sleep(2)
         builder.get()
 
-    slack("vm is %s" % builder.status)
+    slack("instance %s is %s" % (horizon("instance", builder.id), builder.status))
 
 def snapshot(builder):
     """Snapshot the now-powered-down builder."""
 
     image_name = openstack["image"]["prefix"] + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     image_id = builder.create_image(image_name)
-
-    slack("creating image: %s" % image_name)
-
     image = glance_client.images.get(image_id)
+
+    slack("creating image: %s" % horizon("image", image_id, image_name))
 
     previous_status = ""
     while not image.status == "active":
         if image.status != previous_status:
-            slack("image %s is %s" % (image_name, image.status))
+            slack("image %s is %s" % (horizon("image", image_id, image_name), image.status))
             previous_status = image.status
         time.sleep(2)
         image.get()
 
-    slack("image %s is %s" % (image_name, image.status))
+    slack("image %s is %s" % (horizon("image", image_id, image_name), image.status))
 
-    return image_id
+    return image_id, image_name
 
-def finish(builder, image_id):
+def finish(builder, image_id, image_name):
     """Tidy up and record the image ID."""
 
     builder.delete()
-    slack("vm deleted")
+    slack("instance %s deleted" % horizon("instance", builder.id))
 
     swiftclient.client.put_object(swift_url, token=keystone_client.auth_token, container=openstack["swift"]["container"], name=openstack["swift"]["object"], contents=image_id)
-    slack("swift: %s/%s = %s" % (openstack["swift"]["container"], openstack["swift"]["object"], image_id))
+    slack("swift: %s/%s = %s" % (openstack["swift"]["container"], openstack["swift"]["object"], horizon("image", image_id, image_name)))
 
 if __name__ == "__main__":
     builder = initiate()
     wait_for_completion(builder)
-    image_id = snapshot(builder)
-    finish(builder, image_id)
+    image_id, image_name = snapshot(builder)
+    finish(builder, image_id, image_name)
