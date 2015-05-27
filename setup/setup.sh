@@ -8,7 +8,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 # packages
 
-ubuntu=utopic
+ubuntu=vivid
 
 cat > /etc/apt/sources.list << EOF
 deb http://mirror.aarnet.edu.au/ubuntu/ $ubuntu main universe
