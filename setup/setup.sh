@@ -55,6 +55,10 @@ patch /usr/local/lib/python2.7/dist-packages/storages/backends/s3boto.py < s3bot
 
 apt-get clean
 
+# protect apt source list
+
+echo "apt_preserve_sources_list: true" >> /etc/cloud/cloud.cfg
+
 # zfs: boot-time initialisation
 
 install -o 0 -g 0 rc.local /etc
