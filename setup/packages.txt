@@ -22,6 +22,8 @@ libyaml-dev
 lzop
 mosh
 nginx
+nodejs-legacy
+npm
 ntp
 parallel
 pigz
